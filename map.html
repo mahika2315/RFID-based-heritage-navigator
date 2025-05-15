@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>RFID Simulation at Belur Chennakeshava Temple</title>
+    <!-- Leaflet.js CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" />
+    <!-- Leaflet.js JavaScript -->
+    <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
+    <style>
+        #map {
+            height: 600px; /* Set map height */
+            width: 100%; /* Set map width */
+        }
+        body {
+            font-family: Arial, sans-serif;
+        }
+        #controls {
+            margin: 10px;
+        }
+        #searchBar {
+            width: 200px;
+            padding: 5px;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>RFID Simulation at Belur Chennakeshava Temple</h1>
+    <p>This map shows RFID readers (sculptures) and tourists (tags) around the Chennakeshava Temple. Lines indicate proximity.</p>
+    <div id="controls">
+        <label for="range">Proximity Range: </label>
+        <input type="range" id="range" min="0.0001" max="0.001" step="0.0001" value="0.0005">
+        <span id="rangeValue">0.0005</span>
+        <button onclick="clearConnections()">Clear Connections</button>
+        <button onclick="getConnections()">Get Connections</button>
+        <br>
+        <input type="text" id="searchBar" placeholder="Search for destination...">
+        <br>
+        <label for="startLocation">Start Location: </label>
+        <select id="startLocation">
+            <option value="">--Select a start location--</option>
+        </select>
+        <br>
+        <label for="destination">Destination: </label>
+        <select id="destination">
+            <option value="">--Select a destination--</option>
+        </select>
+        <button onclick="getDirections()">Get Directions</button>
+    </div>
+    <div id="map"></div>
+
+    <script>
+        // Initialize the map and set its view to Belur Chennakeshava Temple
+        var map = L.map('map').setView([13.162930, 75.860593], 16); // Center map on Belur Chennakeshava Temple
+
+        // Add OpenStreetMap tiles
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+
+        // Define RFID readers (sculptures) around the temple
+        var sculptures = [
+            { name: "Main Entrance", coords: [13.162850, 75.860500], info: "The grand entrance of the Chennakeshava Temple." },
+            { name: "Garuda Stambha", coords: [13.162900, 75.861000], info: "The iconic pillar facing the main shrine." },
+            { name: "Kalyani (Temple Pond)", coords: [13.162750, 75.859800], info: "The sacred pond near the temple." },
+            { name: "Shukabasini", coords: [13.162700, 75.860950], info: "An intricately carved sculpture of a lady with a parrot." },
+            { name: "Darpana Sundari", coords: [13.162950, 75.861300], info: "A beautiful sculpture of a woman admiring herself in a mirror." }
+        ];
+
+        // Define new destinations for tourists (including sculptures as destinations)
+        var destinations = [
+            { name: "Huntress", coords: [13.163200, 75.860700] },
+            { name: "Monkey Pulling Saree", coords: [13.162700, 75.861100] },
+            { name: "Tribhangi Nritya", coords: [13.162800, 75.860200] },
+            { name: "Hair Dresser", coords: [13.163100, 75.860300] },
+            { name: "Sham She Saint", coords: [13.162400, 75.860800] },
+            { name: "Drum Dance", coords: [13.163000, 75.860400] },
+            { name: "The Flutist", coords: [13.163150, 75.860550] },
+            { name: "Musician", coords: [13.162550, 75.860450] },
+            { name: "Violinist", coords: [13.162600, 75.860100] },
+            // Adding sculptures as destinations as well
+            { name: "Main Entrance", coords: [13.162850, 75.860500] },
+            { name: "Garuda Stambha", coords: [13.162900, 75.861000] },
+            { name: "Kalyani (Temple Pond)", coords: [13.162750, 75.859800] },
+            { name: "Shukabasini", coords: [13.162700, 75.860950] },
+            { name: "Darpana Sundari", coords: [13.162950, 75.861300] }
+        ];
+
+        // Layers for sculptures, destinations, and connections
+        var sculptureLayer = L.layerGroup();
+        var destinationLayer = L.layerGroup();
+        var connectionLayer = L.layerGroup();
+        var directionLayer = L.layerGroup();
+
+        // Plot sculptures on the map
+        sculptures.forEach(sculpture => {
+            L.marker(sculpture.coords)
+                .addTo(sculptureLayer)
+                .bindPopup(<b>${sculpture.name}</b><br>${sculpture.info});
+        });
+
+        // Plot destinations on the map
+        destinations.forEach(destination => {
+            L.marker(destination.coords)
+                .addTo(destinationLayer)
+                .bindPopup(<b>${destination.name}</b>);
+        });
+
+        // Add layers to map
+        sculptureLayer.addTo(map);
+        destinationLayer.addTo(map);
+
+        // Layer control
+        L.control.layers(null, {
+            'Sculptures': sculptureLayer,
+            'Destinations': destinationLayer
+        }).addTo(map);
+
+        // Add options to the start location dropdown (all sculptures and destinations)
+        var startLocationSelect = document.getElementById("startLocation");
+        var allLocations = sculptures.concat(destinations); // Combine sculptures and destinations arrays
+
+        allLocations.forEach((location, index) => {
+            var option = document.createElement("option");
+            option.value = index;
+            option.textContent = location.name;
+            startLocationSelect.appendChild(option);
+        });
+
+        var destinationSelect = document.getElementById("destination");
+        destinations.forEach((destination, index) => {
+            var option = document.createElement("option");
+            option.value = index;
+            option.textContent = destination.name;
+            destinationSelect.appendChild(option);
+        });
+
+        // Function to calculate proximity
+        function isInProximity(coords1, coords2, range) {
+            let latDiff = coords1[0] - coords2[0];
+            let lonDiff = coords1[1] - coords2[1];
+            return Math.sqrt(latDiff * latDiff + lonDiff * lonDiff) <= range;
+        }
+
+        // Function to draw connections
+        function drawConnections(range) {
+            connectionLayer.clearLayers();
+            sculptures.forEach(sculpture => {
+                destinations.forEach(destination => {
+                    if (isInProximity(sculpture.coords, destination.coords, range)) {
+                        // Draw a line connecting the sculpture and the destination
+                        L.polyline([sculpture.coords, destination.coords], { color: 'green' }).addTo(connectionLayer);
+                        console.log(${sculpture.name} is near ${destination.name});
+                    }
+                });
+            });
+            connectionLayer.addTo(map);
+        }
+
+        // Event listener for range slider
+        document.getElementById('range').addEventListener('input', function() {
+            let range = parseFloat(this.value);
+            document.getElementById('rangeValue').innerText = range;
+            drawConnections(range);
+        });
+
+        // Function to clear all connections
+        function clearConnections() {
+            connectionLayer.clearLayers();
+        }
+
+        // Function to calculate direction
+        function getDirection(start, end) {
+            const latDiff = end[0] - start[0];
+            const lonDiff = end[1] - start[1];
+            const angle = Math.atan2(latDiff, lonDiff) * (180 / Math.PI);
+
+            if (angle >= 45 && angle < 135) return "Go straight ahead.";
+            if (angle >= 135 && angle < 225) return "Turn left.";
+            if (angle >= 225 && angle < 315) return "Turn right.";
+            return "Go straight ahead.";
+        }
+
+        // Function to get directions
+        function getDirections() {
+            directionLayer.clearLayers();
+            var startLocationIndex = document.getElementById('startLocation').value;
+            var destinationIndex = document.getElementById('destination').value;
+
+            if (startLocationIndex === "" || destinationIndex === "") {
+                alert("Please select both a start location and a destination.");
+                return;
+            }
+
+            var startLocation = allLocations[startLocationIndex];
+            var destination = destinations[destinationIndex];
+            let direction = getDirection(startLocation.coords, destination.coords);
+
+            L.polyline([startLocation.coords, destination.coords], { color: 'red', dashArray: '5, 10' }).addTo(directionLayer);
+            directionLayer.addTo(map);
+            alert(Directions: Start at ${startLocation.name} and ${direction} Head towards ${destination.name}.);
+        }
+
+        // Initial draw with default range
+        drawConnections(0.0005);
+
+        // Search bar functionality
+        document.getElementById('searchBar').addEventListener('input', function() {
+            var searchText = this.value.toLowerCase();
+            var options = destinationSelect.querySelectorAll('option');
+            options.forEach(option => {
+                if (option.textContent.toLowerCase().includes(searchText)) {
+                    option.style.display = '';
+                } else {
+                    option.style.display = 'none';
+                }
+            });
+        });
+
+        // Get Connections Button functionality
+        function getConnections() {
+            var range = parseFloat(document.getElementById('range').value);
+            drawConnections(range);
+        }
+    </script>
+</body>
+</html>
