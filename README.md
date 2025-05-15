@@ -1,4 +1,5 @@
 RFID Heritage Navigator
+
 An interactive RFID-based system designed to enhance visitor experiences at cultural and historical sites by providing personalized, accurate, and engaging information about sculptures and artifacts.
 
 📜 Project Overview
@@ -21,7 +22,7 @@ Microcontroller: Arduino Uno
 Database: MySQL
 Frontend: GUI	Python (Tkinter)
 Mapping: Leaflet.js, HTML
-Backend: Logic	Python
+Backend: Logic Python
 Middleware: Python for RFID integration
 
 🖥️ Solution Architecture
