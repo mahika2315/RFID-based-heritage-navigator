@@ -20,10 +20,11 @@ The **RFID Heritage Navigator** is an interactive system designed to enhance vis
 - 🌐 **Leaflet.js & HTML** (interactive mapping)
 - 🔗 **Middleware integration** for RFID-data communication
 
-## 🏗️ Installation & Setup
-To set up and run the project locally:
+## 📈 How to Use
 
-### 1️⃣ Clone the Repository
-```bash
-git clone https://github.com/yourusername/rfid-heritage-navigator.git
-cd rfid-heritage-navigator
+1. 🏷️ **Scan artifacts** using an RFID reader connected to Arduino Uno.
+2. 🖥️ **View detailed information** about the scanned artifact on the Tkinter GUI.
+3. 🗺️ **Explore sculpture locations** with the interactive map.
+4. 🎯 **Navigate at your own pace**, without traditional guides.
+5. 📡 **Get real-time, verified data** from the connected MySQL database.
+
